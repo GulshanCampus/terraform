@@ -1,0 +1,43 @@
+<powershell>
+#------------------------------------------------------------------------------
+# Script parameters
+#------------------------------------------------------------------------------
+[string]$SecretAD = "joindomain"
+[string]$Hostname = "${hostname}"
+#------------------------------------------------------------------------------
+# Defaults
+#------------------------------------------------------------------------------
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Force
+Import-Module AWSPowerShell
+Set-DefaultAWSRegion -Region us-east-1
+Start-Transcript -Path "C:\packages\UserData.log" -Append
+#------------------------------------------------------------------------------
+# Setup Salt
+#------------------------------------------------------------------------------
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$objClient = new-object System.Net.WebClient
+$objClient.DownloadFile('https://repo.saltstack.com/windows/Salt-Minion-3001.2-Py3-AMD64-Setup.exe', 'C:\packages\Salt-Minion-3001.2-Py3-AMD64-Setup.exe')
+New-NetFirewallRule -DisplayName "Salt" -Direction Inbound -LocalPort 4505-4506 -Protocol TCP -Action Allow
+Start-Process 'C:\packages\Salt-Minion-3001.2-Py3-AMD64-Setup.exe' -Wait -ArgumentList ('/S /master=userundeck1b.myastute.local /minion-name=' + $Hostname + ' /start-minion=0')
+Add-Content -Path 'C:\salt\conf\minion' -Value "startup_states: 'highstate'"
+Add-Content -Path 'C:\salt\conf\minion' -Value "grains:"
+Add-Content -Path 'C:\salt\conf\minion' -Value "  hostname: $Hostname"
+Add-Content -Path 'C:\salt\conf\minion' -Value "  product: reporting"
+Add-Content -Path 'C:\salt\conf\minion' -Value "  environment: prod"
+Add-Content -Path 'C:\salt\conf\minion' -Value "  worker: ${worker}"
+Add-Content -Path 'C:\salt\conf\minion' -Value "  app_name: reporting"
+Set-Service -Name "salt-minion" -StartupType Automatic
+#------------------------------------------------------------------------------
+# Performing Domain Join
+#------------------------------------------------------------------------------
+Write-Output ("Domain Join required " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+#------------------------------------------------------------------------------
+$Password = (Get-SSMParameter -Name $SecretAD -WithDecryption $true).Value
+$PSPassword = ConvertTo-SecureString $Password -AsPlainText -Force
+$PSCredentials = New-Object System.Management.Automation.PSCredential ($SecretAD, $PSPassword)
+#------------------------------------------------------------------------------
+Write-Output ("Attempting to join domain <myastute.local> " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+#------------------------------------------------------------------------------
+Add-Computer -DomainName myastute.local -OUPath 'OU=USEast,OU=SaaS,DC=myastute,DC=local' -Credential $PSCredentials -NewName $Hostname -Restart -Force
+#------------------------------------------------------------------------------
+</powershell>

@@ -1,0 +1,5 @@
+Environment = "prod"
+Product     = "epowercenter"
+Terraform   = "epowercenter/Prod/terraform"
+astute_vpn  = "4.7.156.50/32"
+easton_vpn  = "4.4.156.50/32"

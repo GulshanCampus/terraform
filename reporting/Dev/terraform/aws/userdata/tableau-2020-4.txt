@@ -1,0 +1,32 @@
+<powershell>
+#------------------------------------------------------------------------------
+# Script parameters
+#------------------------------------------------------------------------------
+[string]$SecretAD = "joindomain"
+#------------------------------------------------------------------------------
+# Defaults
+#------------------------------------------------------------------------------
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Force
+Import-Module AWSPowerShell
+Set-DefaultAWSRegion -Region us-east-1
+Start-Transcript -Path "C:\packages\UserData.log" -Append
+#------------------------------------------------------------------------------
+# Get Credentials
+#------------------------------------------------------------------------------
+Write-Output ("Loading Secret <" + $SecretAD + "> " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+#------------------------------------------------------------------------------
+$passwd = (Get-SSMParameter -Name 'joindomain' -WithDecryption $true).Value
+#------------------------------------------------------------------------------
+# Performing Domain Join
+#------------------------------------------------------------------------------
+Write-Output ("Domain Join required " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+#------------------------------------------------------------------------------
+$password = $passwd | ConvertTo-SecureString -asPlainText -Force
+$username = "aws-ad-connector-sa@DEVAWSASTUTE.com"
+$credential = New-Object System.Management.Automation.PSCredential($username, $password)
+#------------------------------------------------------------------------------
+Write-Output ("Attempting to join domain <myastute.local> " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+#------------------------------------------------------------------------------
+Add-Computer -DomainName DEVAWSASTUTE.com -OUPath 'OU=Dev,DC=DevAWSAstute,DC=com' -Credential $credential -NewName "tab2020v4" -Restart -Force
+#------------------------------------------------------------------------------
+</powershell>

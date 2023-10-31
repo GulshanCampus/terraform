@@ -1,0 +1,9 @@
+<powershell>
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Force
+iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+Start-Process choco -Wait -ArgumentList "install sql-server-management-studio -y --allow-empty-checksums --source \`"https://nexus.astutesolutions.org/repository/Chocolatey_Group/\`""
+Write-Output ('Renaming the computer and joining it to the myastute domain')
+Set-Variable -name instance_id -value (Invoke-Restmethod -uri http://169.254.169.254/latest/meta-data/instance-id)
+Rename-Computer -NewName "pcas-logging" -Force
+New-SSMAssociation -InstanceId $instance_id -Name 'domain_myastute_local'
+</powershell>

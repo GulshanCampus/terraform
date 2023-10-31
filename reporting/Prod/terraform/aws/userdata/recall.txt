@@ -1,0 +1,11 @@
+#!/bin/bash
+curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+sudo apt-get install -y nodejs ruby wget
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo "export PATH=\"$HOME/.npm-global/bin:$PATH\"" >> ~/.bashrc
+source ~/.profile
+sudo snap install aws-cli --classic
+wget https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
+chmod +x ./install
+./install auto
